@@ -5,7 +5,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.savedrequest.RequestCache;
@@ -19,17 +21,25 @@ public class SecurityConfig {
                                            AuthenticationManager authenticationManager,
                                            AuthenticationSuccessHandler successHandler,
                                            AuthenticationFailureHandler failureHandler,
-                                           RequestCache requestCache) throws Exception {
+                                           RequestCache requestCache,
+                                           AuthenticationEntryPoint authenticationEntryPoint,
+                                           AccessDeniedHandler accessDeniedHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
-                        // scaffolding for this topic's inspection endpoints only -
-                        // matcher semantics in depth remain Group 3's subject.
-                        .requestMatchers("/debug/**").permitAll()
+                        .requestMatchers("/debug/**", "/403").permitAll()
+                        // Minimal scaffold for THIS topic only - gives us a real
+                        // authenticated-but-forbidden case to trigger AccessDeniedHandler.
+                        .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .authenticationManager(authenticationManager)
-                // Explicit now - was an invisible default since Topic 2.1.
                 .requestCache(cache -> cache.requestCache(requestCache))
+                .exceptionHandling(ex -> ex
+                        // Explicit now - takes priority over whatever formLogin()
+                        // would otherwise build implicitly from .loginPage() below.
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                )
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/perform_login")
