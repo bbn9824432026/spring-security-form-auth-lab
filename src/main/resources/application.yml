@@ -1,0 +1,6 @@
+server:
+  port: 8081   # deliberately different from any Group 1 project so both can run side by side
+
+logging:
+  level:
+    org.springframework.security: DEBUG   # you will want this on for every topic in this group
