@@ -5,14 +5,15 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-// Minimal scaffold only. Full treatment (encoding IDs, BCrypt internals,
-// why DelegatingPasswordEncoder exists) is Topic 2.5. This bean exists
-// here only so something can encode/check the demo password below.
 @Configuration
 public class PasswordEncoderConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
+        // This is a DelegatingPasswordEncoder, not a plain BCryptPasswordEncoder.
+        // encode() always uses bcrypt (today's default id) and prepends "{bcrypt}".
+        // matches() ignores that default entirely and reads whatever {id} is
+        // actually stored on the value being checked. See Topic 2.5.
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
     }
 }
