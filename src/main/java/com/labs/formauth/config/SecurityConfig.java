@@ -10,6 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.savedrequest.RequestCache;
 
 @Configuration
@@ -23,20 +24,17 @@ public class SecurityConfig {
                                            AuthenticationFailureHandler failureHandler,
                                            RequestCache requestCache,
                                            AuthenticationEntryPoint authenticationEntryPoint,
-                                           AccessDeniedHandler accessDeniedHandler) throws Exception {
+                                           AccessDeniedHandler accessDeniedHandler,
+                                           CsrfTokenRepository csrfTokenRepository) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/debug/**", "/403").permitAll()
-                        // Minimal scaffold for THIS topic only - gives us a real
-                        // authenticated-but-forbidden case to trigger AccessDeniedHandler.
                         .requestMatchers("/admin").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .authenticationManager(authenticationManager)
                 .requestCache(cache -> cache.requestCache(requestCache))
                 .exceptionHandling(ex -> ex
-                        // Explicit now - takes priority over whatever formLogin()
-                        // would otherwise build implicitly from .loginPage() below.
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .accessDeniedHandler(accessDeniedHandler)
                 )
@@ -49,7 +47,10 @@ public class SecurityConfig {
                         .failureHandler(failureHandler)
                         .permitAll()
                 )
-                .csrf(csrf -> csrf.disable());
+                // FINALLY turned back on, as promised since Topic 2.1. Explicit
+                // repository wiring, even though HttpSessionCsrfTokenRepository
+                // is also the implicit default - stated so it's visible.
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository));
 
         return http.build();
     }
