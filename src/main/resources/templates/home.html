@@ -5,27 +5,23 @@
 <body>
 <h1>You are logged in.</h1>
 
-<!-- No controller code produced these - read directly from the
-     SecurityContext by the sec: dialect. -->
 <p>Signed in as: <span sec:authentication="name">?</span></p>
 <p>Authorities: <span sec:authentication="principal.authorities">?</span></p>
 
-<p><a href="/profile">Go to profile</a> | <a href="/logout">Logout</a></p>
+<p><a href="/profile">Go to profile</a></p>
 
 <!--
-  DISPLAY ONLY - see Part A's trap. This <p> is entirely absent from
-  the rendered HTML for anyone without ROLE_ADMIN, but that absence
-  has zero effect on whether GET /admin actually succeeds for them.
-  The real enforcement is SecurityConfig's .hasRole("ADMIN") (Topic 2.9).
+  A plain <a href="/logout"> NEVER worked - see Topic 2.12's Part A.
+  This must be a POST, and th:action is what gets it a valid CSRF
+  token automatically (Topic 2.11's mechanism, reused here).
 -->
+<form th:action="@{/logout}" method="post">
+    <button type="submit">Logout</button>
+</form>
+
 <p sec:authorize="hasRole('ADMIN')">
     <a href="/admin">Go to admin panel</a>
 </p>
-
-<!--
-  Reuses the REAL configured rule for this exact URL instead of a
-  second, hand-copied role expression that could drift out of sync.
--->
 <p sec:authorize-url="/admin">
     (sec:authorize-url agrees: you can reach /admin)
 </p>

@@ -4,11 +4,10 @@
 <body>
 <h1>Profile page</h1>
 <p>Logged in as: <span th:text="${username}">?</span></p>
-<p><a href="/">Home</a> | <a href="/logout">Logout</a></p>
-<!--
-  /logout already works even though we never called .logout() ourselves —
-  Spring Security registers a default logout mapping automatically.
-  Full mechanics are Topic 2.12.
--->
+<p><a href="/">Home</a></p>
+
+<form th:action="@{/logout}" method="post">
+    <button type="submit">Logout</button>
+</form>
 </body>
 </html>

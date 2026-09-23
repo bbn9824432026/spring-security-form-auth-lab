@@ -10,6 +10,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.savedrequest.RequestCache;
 
@@ -25,7 +26,8 @@ public class SecurityConfig {
                                            RequestCache requestCache,
                                            AuthenticationEntryPoint authenticationEntryPoint,
                                            AccessDeniedHandler accessDeniedHandler,
-                                           CsrfTokenRepository csrfTokenRepository) throws Exception {
+                                           CsrfTokenRepository csrfTokenRepository,
+                                           LogoutSuccessHandler logoutSuccessHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/debug/**", "/403").permitAll()
@@ -47,10 +49,16 @@ public class SecurityConfig {
                         .failureHandler(failureHandler)
                         .permitAll()
                 )
-                // FINALLY turned back on, as promised since Topic 2.1. Explicit
-                // repository wiring, even though HttpSessionCsrfTokenRepository
-                // is also the implicit default - stated so it's visible.
-                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository));
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
+                // Explicit now - was entirely implicit (and, as Step 1 proved,
+                // never actually reachable via a plain <a> link) since Topic 2.1.
+                // No .permitAll() needed here - unlike /login, /logout is only
+                // ever meaningfully hit by someone already authenticated.
+                .logout(logout -> logout
+                        .logoutUrl("/logout")
+                        .logoutSuccessHandler(logoutSuccessHandler)
+                        .deleteCookies("JSESSIONID")
+                );
 
         return http.build();
     }
