@@ -6,6 +6,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 @Configuration
@@ -15,7 +16,8 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            AuthenticationManager authenticationManager,
-                                           AuthenticationSuccessHandler successHandler) throws Exception {
+                                           AuthenticationSuccessHandler successHandler,
+                                           AuthenticationFailureHandler failureHandler) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().authenticated()
@@ -26,8 +28,8 @@ public class SecurityConfig {
                         .loginProcessingUrl("/perform_login")
                         .usernameParameter("user")
                         .passwordParameter("pass")
-                        .successHandler(successHandler)   // replaces .defaultSuccessUrl() from 2.1
-                        .failureUrl("/login?error")
+                        .successHandler(successHandler)
+                        .failureHandler(failureHandler)   // replaces .failureUrl() from 2.1
                         .permitAll()
                 )
                 .csrf(csrf -> csrf.disable());

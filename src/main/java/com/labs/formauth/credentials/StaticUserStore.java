@@ -20,7 +20,7 @@ import java.util.Map;
  * To run this instead: comment out @Configuration on LabUserDetailsService,
  * uncomment it here. Only one UserDetailsService bean can exist at a time.
  */
-@Configuration
+//@Configuration
 public class StaticUserStore implements UserDetailsService {
 
     // In a real hand-rolled store, this would be a pre-encoded hash pasted
