@@ -15,7 +15,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 // TO RUN THIS: comment out the @Configuration annotation (and the whole
 // filterChain bean) in SecurityConfig.java first — only one SecurityFilterChain
 // covering "any request" can be active at a time. Revert when you're done.
-@Configuration
+// @Configuration
 @EnableWebSecurity
 public class DebugSecurityConfig {
 
