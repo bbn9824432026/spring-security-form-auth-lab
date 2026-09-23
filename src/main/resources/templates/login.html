@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head><title>Login</title></head>
+<body>
+<h1>Log in</h1>
+
+<p th:if="${param.error}" style="color:red;">Invalid username or password.</p>
+<p th:if="${param.expired}" style="color:orange;">Your password has expired. Please reset it.</p>
+
+<!--
+  th:action (not plain action=) is what triggers auto CSRF injection - see
+  Part A. The manual <input type="hidden" .../> from Topic 2.10 is GONE;
+  this replaces it, it doesn't sit alongside it.
+-->
+<form th:action="@{/perform_login}" method="post">
+    <label>Username: <input type="text" name="user"/></label><br/>
+    <label>Password: <input type="password" name="pass"/></label><br/>
+    <button type="submit">Log in</button>
+</form>
+</body>
+</html>

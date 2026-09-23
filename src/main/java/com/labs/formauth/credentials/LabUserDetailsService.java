@@ -24,14 +24,20 @@ public class LabUserDetailsService {
                 .accountLocked(true)
                 .build();
 
-        // Added in 2.7: correct password, expired credentials - the ONE
-        // status exception that only ever fires AFTER a correct password.
         UserDetails carol = User.withUsername("carol")
                 .password(passwordEncoder.encode("password123"))
                 .roles("USER")
                 .credentialsExpired(true)
                 .build();
 
-        return new InMemoryUserDetailsManager(alice, bob, carol);
+        // Added in 2.11: an actual ROLE_ADMIN user, so sec:authorize has
+        // something real to differ on - alice and dave will render home.html
+        // differently, from the identical template.
+        UserDetails dave = User.withUsername("dave")
+                .password(passwordEncoder.encode("password123"))
+                .roles("USER", "ADMIN")
+                .build();
+
+        return new InMemoryUserDetailsManager(alice, bob, carol, dave);
     }
 }
