@@ -6,12 +6,15 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.session.SessionRegistry;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.access.expression.WebExpressionAuthorizationManager;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.savedrequest.RequestCache;
 
@@ -29,11 +32,17 @@ public class SecurityConfig {
                                            AccessDeniedHandler accessDeniedHandler,
                                            CsrfTokenRepository csrfTokenRepository,
                                            LogoutSuccessHandler logoutSuccessHandler,
-                                           SessionRegistry sessionRegistry) throws Exception {
+                                           SessionRegistry sessionRegistry,
+                                           UserDetailsService userDetailsService,
+                                           PersistentTokenRepository persistentTokenRepository) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/debug/**", "/403").permitAll()
-                        .requestMatchers("/admin").hasRole("ADMIN")
+                        // Changed in 2.15: plain hasRole("ADMIN") would let a
+                        // remember-me-only dave straight through. This requires a
+                        // GENUINELY fresh login too - see Part A's trap.
+                        .requestMatchers("/admin").access(
+                                new WebExpressionAuthorizationManager("hasRole('ADMIN') and isFullyAuthenticated()"))
                         .anyRequest().authenticated()
                 )
                 .authenticationManager(authenticationManager)
@@ -59,15 +68,21 @@ public class SecurityConfig {
                 )
                 .sessionManagement(session -> {
                     session.sessionFixation(fixation -> fixation.changeSessionId());
-                    // Composite order internally: limit check -> ID change ->
-                    // registration - see Part A. maxSessionsPreventsLogin(true)
-                    // means a blocked login throws SessionAuthenticationException,
-                    // routed to our failureHandler's new branch above.
                     session.maximumSessions(1)
                             .maxSessionsPreventsLogin(true)
                             .expiredUrl("/login?expired-session")
                             .sessionRegistry(sessionRegistry);
-                });
+                })
+                .rememberMe(rememberMe -> rememberMe
+                                .key("formAuthLabRememberMeKey")
+                                .tokenValiditySeconds(1209600) // 14 days
+                                .rememberMeParameter("remember-me")
+                                .userDetailsService(userDetailsService)
+                        // CONTRAST TOGGLE: uncomment to switch from stateless
+                        // TokenBasedRememberMeServices to stateful
+                        // PersistentTokenBasedRememberMeServices - see Part A/lab.
+                        // .tokenRepository(persistentTokenRepository)
+                );
 
         return http.build();
     }
