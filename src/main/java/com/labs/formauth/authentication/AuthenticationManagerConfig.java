@@ -8,10 +8,12 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.DefaultAuthenticationEventPublisher;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class AuthenticationManagerConfig {
@@ -24,27 +26,35 @@ public class AuthenticationManagerConfig {
         return provider;
     }
 
-    // NOT provided automatically just because spring-security is on the
-    // classpath - Boot only wires this for you along the auto-configured
-    // AuthenticationManagerBuilder path, which building ProviderManager
-    // by hand (below) bypasses entirely. Without this bean, the manager
-    // falls back to its internal no-op publisher - silently, with no error.
     @Bean
-    public AuthenticationEventPublisher authenticationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        return new DefaultAuthenticationEventPublisher(applicationEventPublisher);
+    public LoginAttemptGuardAuthenticationProvider loginAttemptGuardAuthenticationProvider(LoginAttemptTracker tracker) {
+        return new LoginAttemptGuardAuthenticationProvider(tracker);
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(DaoAuthenticationProvider daoAuthenticationProvider,
+    public AuthenticationEventPublisher authenticationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        DefaultAuthenticationEventPublisher publisher = new DefaultAuthenticationEventPublisher(applicationEventPublisher);
+
+        // THE FIX foreshadowed in Topic 2.16: exact-class matching means
+        // AccountLockoutException (a LockedException SUBCLASS) would
+        // otherwise never produce an audit event at all.
+        publisher.setAdditionalExceptionMappings(Map.of(
+                AccountLockoutException.class, AuthenticationFailureLockedEvent.class
+        ));
+        return publisher;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(LoginAttemptGuardAuthenticationProvider loginAttemptGuardAuthenticationProvider,
+                                                       DaoAuthenticationProvider daoAuthenticationProvider,
                                                        BackupCredentialsAuthenticationProvider backupProvider,
                                                        AuthenticationEventPublisher authenticationEventPublisher) {
-        ProviderManager manager = new ProviderManager(List.of(daoAuthenticationProvider, backupProvider));
+        // ORDER MATTERS (Topic 2.3): the guard goes FIRST, so a locked
+        // account never reaches Dao's PasswordEncoder.matches() at all.
+        ProviderManager manager = new ProviderManager(
+                List.of(loginAttemptGuardAuthenticationProvider, daoAuthenticationProvider, backupProvider));
         manager.setEraseCredentialsAfterAuthentication(true);
-
-        // THE FIX - without this single line, every login attempt in this
-        // project, since Topic 2.3, has published nothing at all.
         manager.setAuthenticationEventPublisher(authenticationEventPublisher);
-
         return manager;
     }
 }
