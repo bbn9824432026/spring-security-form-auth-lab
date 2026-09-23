@@ -50,14 +50,16 @@ public class SecurityConfig {
                         .permitAll()
                 )
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
-                // Explicit now - was entirely implicit (and, as Step 1 proved,
-                // never actually reachable via a plain <a> link) since Topic 2.1.
-                // No .permitAll() needed here - unlike /login, /logout is only
-                // ever meaningfully hit by someone already authenticated.
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessHandler(logoutSuccessHandler)
                         .deleteCookies("JSESSIONID")
+                )
+                // Explicit now - was already the implicit default since Topic
+                // 2.1. This is the FIX; the contrast experiment below is the
+                // deliberately vulnerable variant, for demonstration only.
+                .sessionManagement(session -> session
+                        .sessionFixation(fixation -> fixation.changeSessionId())
                 );
 
         return http.build();
