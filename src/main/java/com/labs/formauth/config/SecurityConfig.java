@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -27,7 +28,8 @@ public class SecurityConfig {
                                            AuthenticationEntryPoint authenticationEntryPoint,
                                            AccessDeniedHandler accessDeniedHandler,
                                            CsrfTokenRepository csrfTokenRepository,
-                                           LogoutSuccessHandler logoutSuccessHandler) throws Exception {
+                                           LogoutSuccessHandler logoutSuccessHandler,
+                                           SessionRegistry sessionRegistry) throws Exception {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/debug/**", "/403").permitAll()
@@ -55,12 +57,17 @@ public class SecurityConfig {
                         .logoutSuccessHandler(logoutSuccessHandler)
                         .deleteCookies("JSESSIONID")
                 )
-                // Explicit now - was already the implicit default since Topic
-                // 2.1. This is the FIX; the contrast experiment below is the
-                // deliberately vulnerable variant, for demonstration only.
-                .sessionManagement(session -> session
-                        .sessionFixation(fixation -> fixation.changeSessionId())
-                );
+                .sessionManagement(session -> {
+                    session.sessionFixation(fixation -> fixation.changeSessionId());
+                    // Composite order internally: limit check -> ID change ->
+                    // registration - see Part A. maxSessionsPreventsLogin(true)
+                    // means a blocked login throws SessionAuthenticationException,
+                    // routed to our failureHandler's new branch above.
+                    session.maximumSessions(1)
+                            .maxSessionsPreventsLogin(true)
+                            .expiredUrl("/login?expired-session")
+                            .sessionRegistry(sessionRegistry);
+                });
 
         return http.build();
     }

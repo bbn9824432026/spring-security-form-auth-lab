@@ -6,12 +6,9 @@
 
 <p th:if="${param.error}" style="color:red;">Invalid username or password.</p>
 <p th:if="${param.expired}" style="color:orange;">Your password has expired. Please reset it.</p>
+<p th:if="${param['expired-session']}" style="color:orange;">Your session expired because you logged in elsewhere.</p>
+<p th:if="${param['too-many-sessions']}" style="color:red;">You're already logged in elsewhere. Log out there first.</p>
 
-<!--
-  th:action (not plain action=) is what triggers auto CSRF injection - see
-  Part A. The manual <input type="hidden" .../> from Topic 2.10 is GONE;
-  this replaces it, it doesn't sit alongside it.
--->
 <form th:action="@{/perform_login}" method="post">
     <label>Username: <input type="text" name="user"/></label><br/>
     <label>Password: <input type="password" name="pass"/></label><br/>

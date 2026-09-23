@@ -1,6 +1,11 @@
 server:
-  port: 8081   # deliberately different from any Group 1 project so both can run side by side
+  port: 8081
+  # LAB ONLY - absurdly short so registry staleness is observable in
+  # seconds instead of the usual 30 minutes. Never do this in production.
+  servlet:
+    session:
+      timeout: 8s
 
 logging:
   level:
-    org.springframework.security: DEBUG   # you will want this on for every topic in this group
+    org.springframework.security: DEBUG
